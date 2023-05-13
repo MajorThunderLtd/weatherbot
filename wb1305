@@ -1,0 +1,46 @@
+import requests
+import socks
+import socket
+from aiogram import Bot, Dispatcher, executor, types
+from aiogram.contrib.fsm_storage.memory import MemoryStorage
+
+bot = Bot(token="5895783411:AAFGLHYw4yM4KDn5BtY7UMPycLkNrbjOHko")
+storage = MemoryStorage()
+dp = Dispatcher(bot, storage=storage)
+
+WEATHER_API_KEY = "efef1dbb327e2a763b4da93c28394f38"
+
+def init_proxy(proxy_host, proxy_port):
+    socks.set_default_proxy(socks.SOCKS5, proxy_host, proxy_port)
+    socket.socket = socks.socksocket
+
+@dp.message_handler()
+async def BotWeather(message: types.Message):
+    city = message.text
+    url = f"http://api.openweathermap.org/data/2.5/weather?q={city}&appid={WEATHER_API_KEY}&units=metric"
+    response = requests.get(url).json()
+
+    celsius = round(response["main"]["temp"])
+    humidity = response["main"]["humidity"]
+    sky = response["weather"][0]["description"]
+    time = response["dt"]
+    wind = response["wind"]["speed"]
+    vis = response["visibility"]
+    press = response["main"]["pressure"]
+
+    res_msg = "Weather in: " + city + "\n"
+    res_msg += f"Temperature: {celsius} °C \n"
+    res_msg += f"Humidity:  {humidity} %\n"
+    res_msg += f"In the sky:  {sky} \n"
+    res_msg += f"Wind speed:  {wind} m/s \n"
+    res_msg += f"Visibility:  {vis / 1000} km \n"
+    res_msg += f"Pressure:  {press} hPa \n"
+    res_msg += f"Date and time:  {time} \n"
+
+    await message.answer(res_msg)
+
+if __name__ == "__main__":
+    proxy_host = "proxy.server"
+    proxy_port = 3128
+    init_proxy(proxy_host, proxy_port)
+    executor.start_polling(dp, skip_updates=True)
